@@ -16,4 +16,6 @@ router.get('/me', verifyToken, userController.getCurrentUser);
 
 router.get('/:id', verifyToken, userController.getTeamMembers);
 
+router.post('/update-password', verifyToken, userController.updatePassword);
+
 module.exports = router;

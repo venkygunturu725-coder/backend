@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto'); // Built-in Node module for random strings
 const { sendMail } = require('../utils/emailService');
 const { extractNameFromEmail } = require('../utils/nameFormatter');
+const dotenv = require('dotenv');
+dotenv.config();
 
 exports.provisionEmployee = async (req, res) => {
     try {
@@ -34,7 +36,7 @@ exports.provisionEmployee = async (req, res) => {
         });
 
         // Send Welcome Email to the new employee
-        const loginUrl = 'http://localhost:5173/'; 
+        const loginUrl = process.env.FRONTEND_PASS_RESET_URL || 'http://localhost:5173/'; 
         const emailBody = `
             Hello ${generatedName},
             

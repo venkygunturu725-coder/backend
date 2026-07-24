@@ -49,7 +49,7 @@ exports.getCurrentUser = async (req, res) => {
         console.log("Current user fetched:", user);
         res.status(200).json({ user });
     
-}
+};
 
 exports.getTeamMembers = async (req, res) => {
     try {
@@ -63,4 +63,32 @@ exports.getTeamMembers = async (req, res) => {
     } catch (err) {
         console.error(err);
     }
-}
+};
+
+exports.updatePassword = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const ismatch = await bcrypt.compare(currentPassword, user.password);
+        if (!ismatch) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+        const compareNewPassword = await bcrypt.compare(newPassword, user.password);
+        if (compareNewPassword) {
+            return res.status(400).json({ message: "New password cannot be the same as the current password" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        user.password = hashedPassword;
+        await user.save();
+        res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+        console.error("Error updating password:", error);
+        res.status(500).json({ message: "Server error while updating password" });
+    }
+};
