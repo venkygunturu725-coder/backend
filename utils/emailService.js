@@ -1,7 +1,19 @@
 const nodemailer = require('nodemailer');
 
+// const transporter = nodemailer.createTransport({
+//     service: 'outlook', 
+//     auth: {
+//         user: process.env.OUTLOOK_USER,
+//         pass: process.env.OUTLOOK_PASS
+//     }
+// });
 const transporter = nodemailer.createTransport({
-    service: 'outlook', 
+    host: 'smtp.office365.com', // Explicitly use Office365 SMTP host
+    service: 'outlook',
+    port: 587,
+    secure: false, // true for 465, false for other ports
+    requireTLS: true,
+    family: 4, // Force Node to use IPv4 instead of IPv6
     auth: {
         user: process.env.OUTLOOK_USER,
         pass: process.env.OUTLOOK_PASS

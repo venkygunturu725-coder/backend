@@ -49,7 +49,13 @@ exports.provisionEmployee = async (req, res) => {
             Please log in at ${loginUrl} and change your password immediately.
         `;
 
-        await sendMail(email, 'Welcome to the Team - Account Provisioned', emailBody);
+        let emailSent = false;
+        try {
+            await sendMail(email, 'Welcome to the Team - Account Provisioned', emailBody);
+            emailSent = true;
+        } catch (error) {
+            console.error('Error sending email:', error);
+        }
 
         res.status(201).json({ 
             message: 'Employee provisioned successfully', 
