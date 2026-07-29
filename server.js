@@ -29,7 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
 
-//swagger setup
+//swagger setup 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
