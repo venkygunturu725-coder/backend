@@ -36,7 +36,8 @@ exports.provisionEmployee = async (req, res) => {
         });
 
         // Send Welcome Email to the new employee
-        const loginUrl = process.env.FRONTEND_PASS_RESET_URL || 'http://localhost:5173/'; 
+        const loginUrl = process.env.FRONTEND_PASS_RESET_URL || 'http://localhost:5173/'.replace(/\/$/, '');
+        const resetUrl = `${loginUrl}?email=${encodeURIComponent(email)}`; 
         const emailBody = `
             Hello ${generatedName},
             
@@ -46,15 +47,18 @@ exports.provisionEmployee = async (req, res) => {
             Email: ${email}
             Temporary Password: ${tempPassword}
             
-            Please log in at ${loginUrl} and change your password immediately.
+            Please log in at ${resetUrl} and change your password immediately.
         `;
 
-        let emailSent = false;
         try {
             await sendMail(email, 'Welcome to the Team - Account Provisioned', emailBody);
-            emailSent = true;
         } catch (error) {
             console.error('Error sending email:', error);
+            return res.status(500).json({
+                message: 'Employee was created, but the welcome email could not be sent.',
+                user: { id: newUser.id, name: newUser.name, email: newUser.email },
+                emailError: error.message
+            });
         }
 
         res.status(201).json({ 
