@@ -4,8 +4,8 @@ require('dotenv').config();
 const sequelize = require('./config/database');
 const path = require('path');
 const Submission = require('./models/Submission');
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./config/swagger');
+// const swaggerUi = require('swagger-ui-express');
+// const swaggerSpec = require('./config/swagger');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -30,7 +30,7 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Swagger setup 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const PORT = process.env.PORT || 3000;
 
