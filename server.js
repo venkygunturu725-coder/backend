@@ -29,30 +29,34 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
 
-//swagger setup 
+// Swagger setup 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-
-sequelize.authenticate()
-    .then(() => {
-        console.log('Database connection has been established successfully.');
-    })
-    .catch(err => {
-        console.error('Unable to connect to the database:', err);
-    });
-
 
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync({ alter: true })
-    .then(() => {
-        console.log('PostgreSQL Database connected successfully.');
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
+// Check if we are running in Vercel (production) or locally
+if (process.env.NODE_ENV !== 'production') {
+    // LOCAL DEVELOPMENT: Sync database schemas and start persistent server
+    sequelize.sync({ alter: true })
+        .then(() => {
+            console.log('PostgreSQL Database connected successfully.');
+            app.listen(PORT, () => {
+                console.log(`Server is running on port ${PORT}`);
+            });
+        })
+        .catch((err) => {
+            console.error('Unable to connect to the database:', err);
         });
-    })
-    .catch((err) => {
-        console.error('Unable to connect to the database:', err);
-    });
+} else {
+    // VERCEL PRODUCTION: Just authenticate the database connection, do NOT run app.listen()
+    sequelize.authenticate()
+        .then(() => {
+            console.log('Database connection has been established successfully on Vercel.');
+        })
+        .catch(err => {
+            console.error('Unable to connect to the database:', err);
+        });
+}
 
+// CRITICAL FOR VERCEL: Export the app
 module.exports = app;
