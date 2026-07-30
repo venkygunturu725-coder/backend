@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto'); // Built-in Node module for random strings
 const { sendMail } = require('../utils/emailService');
 const { extractNameFromEmail } = require('../utils/nameFormatter');

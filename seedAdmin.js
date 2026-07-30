@@ -1,5 +1,5 @@
 // seedAdmin.js
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const User = require('./models/User'); // Adjust path to your User model
 const sequelize = require('./config/database'); // Adjust path to your DB config
 
