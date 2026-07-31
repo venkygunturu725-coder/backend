@@ -17,7 +17,9 @@ cloudinary.config({
 const streamUpload = (buffer) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'submissions' }, // Optional: groups files in Cloudinary
+      { folder: 'submissions',
+        resource_type: 'auto'
+       }, // Optional: groups files in Cloudinary
       (error, result) => {
         if (result) {
           resolve(result);
@@ -173,7 +175,7 @@ exports.reviewSubmission = async (req, res) => {
         // Send email to Employee (TO), and Manager (CC)
         // await sendMail(submission.employee.email, subject, emailBody, manager.email);
 
-        // res.status(200).json({ message: `Submission ${status} successfully`, submission });
+        res.status(200).json({ message: `Submission ${status} successfully`, submission });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error', error: error.message });
