@@ -4,6 +4,12 @@ const { sendMail } = require('../utils/emailService');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 
+console.log("Cloudinary Config Check:");
+console.log("Cloud Name exists:", !!process.env.CLOUDINARY_CLOUD_NAME);
+console.log("API Key exists:", !!process.env.CLOUDINARY_API_KEY);
+// ONLY log the length to keep your secret safe in the logs
+console.log("API Secret Length:", process.env.CLOUDINARY_API_SECRET ? process.env.CLOUDINARY_API_SECRET.length : 'UNDEFINED');
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
