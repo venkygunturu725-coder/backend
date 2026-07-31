@@ -20,8 +20,9 @@ exports.provisionEmployee = async (req, res) => {
         const generatedName = extractNameFromEmail(email);
 
         // Generate a temporary random password
-        const tempPassword = crypto.randomBytes(8).toString('hex');
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        // const tempPassword = crypto.randomBytes(8).toString('hex');
+        const defaultPassword = 'Welcome@123';
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
         // Create the User in the self-referencing table
         const newUser = await User.create({
@@ -36,30 +37,30 @@ exports.provisionEmployee = async (req, res) => {
         });
 
         // Send Welcome Email to the new employee
-        const loginUrl = process.env.FRONTEND_PASS_RESET_URL || 'http://localhost:5173/'.replace(/\/$/, '');
-        const resetUrl = `${loginUrl}?email=${encodeURIComponent(email)}`; 
-        const emailBody = `
-            Hello ${generatedName},
+        // const loginUrl = process.env.FRONTEND_PASS_RESET_URL || 'http://localhost:5173/'.replace(/\/$/, '');
+        // const resetUrl = `${loginUrl}?email=${encodeURIComponent(email)}`; 
+        // const emailBody = `
+        //     Hello ${generatedName},
             
-            An administrator has set up your workspace account. 
+        //     An administrator has set up your workspace account. 
             
-            Your login credentials are:
-            Email: ${email}
-            Temporary Password: ${tempPassword}
+        //     Your login credentials are:
+        //     Email: ${email}
+        //     Password: ${defaultPassword}
             
-            Please log in at ${resetUrl} and change your password immediately.
-        `;
+        //     Please log in at ${resetUrl} and change your password immediately.
+        // `;
 
-        try {
-            await sendMail(email, 'Welcome to the Team - Account Provisioned', emailBody);
-        } catch (error) {
-            console.error('Error sending email:', error);
-            return res.status(500).json({
-                message: 'Employee was created, but the welcome email could not be sent.',
-                user: { id: newUser.id, name: newUser.name, email: newUser.email },
-                emailError: error.message
-            });
-        }
+        // try {
+        //     await sendMail(email, 'Welcome to the Team - Account Provisioned', emailBody);
+        // } catch (error) {
+        //     console.error('Error sending email:', error);
+        //     return res.status(500).json({
+        //         message: 'Employee was created, but the welcome email could not be sent.',
+        //         user: { id: newUser.id, name: newUser.name, email: newUser.email },
+        //         emailError: error.message
+        //     });
+        // }
 
         res.status(201).json({ 
             message: 'Employee provisioned successfully', 
