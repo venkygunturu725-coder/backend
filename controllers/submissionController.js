@@ -30,9 +30,9 @@ exports.submitWork = async (req, res) => {
         const emailBody = `Employee ${user.email} has submitted work for review.\n\nWork Title: ${title}`;
         
         // Send email to Manager (TO), and Employee (CC)
-        await sendMail(managerEmail, 'New Work Submission', emailBody, user.email);
+        // await sendMail(managerEmail, 'New Work Submission', emailBody, user.email);
 
-        res.status(201).json({ message: 'Work submitted successfully', submission });
+        // res.status(201).json({ message: 'Work submitted successfully', submission });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -104,9 +104,9 @@ exports.reviewSubmission = async (req, res) => {
         const emailBody = `Your submitted work "${submission.title}" has been ${status}.\n\nComments:\n${adminComments}`;
         
         // Send email to Employee (TO), and Manager (CC)
-        await sendMail(submission.employee.email, subject, emailBody, manager.email);
+        // await sendMail(submission.employee.email, subject, emailBody, manager.email);
 
-        res.status(200).json({ message: `Submission ${status} successfully`, submission });
+        // res.status(200).json({ message: `Submission ${status} successfully`, submission });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error', error: error.message });
