@@ -28,9 +28,9 @@ const streamUpload = (buffer) => {
        }, 
       (error, result) => {
         if (result) {
-          res.status(200).json(result);
+          resolve(result);
         } else {
-          res.status(500).json({ message: 'Server error', error: error.message });
+          reject(error);
         }
       }
     );
