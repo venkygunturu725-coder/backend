@@ -25,12 +25,12 @@ const streamUpload = (buffer) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder: 'submissions',
         resource_type: 'auto'
-       }, // Optional: groups files in Cloudinary
+       }, 
       (error, result) => {
         if (result) {
-          resolve(result);
+          res.status(200).json(result);
         } else {
-          reject(error);
+          res.status(500).json({ message: 'Server error', error: error.message });
         }
       }
     );
