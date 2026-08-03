@@ -11,9 +11,9 @@ console.log("API Key exists:", !!process.env.CLOUDINARY_API_KEY);
 console.log("API Secret Length:", process.env.CLOUDINARY_API_SECRET ? process.env.CLOUDINARY_API_SECRET.length : 'UNDEFINED');
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
+  api_key: process.env.CLOUDINARY_API_KEY.trim(),
+  api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
 });
 
 /**
@@ -85,6 +85,7 @@ exports.submitWork = async (req, res) => {
         const userId = req.user.id; 
         
         let fileUrls = [];
+        console.log("Title: ", title);
 
         // Check if files exist in the request
         if (req.files && req.files.length > 0) {
@@ -102,7 +103,7 @@ exports.submitWork = async (req, res) => {
         const submission = await Submission.create({
             title,
             concepts,
-            files: fileUrls, // Saving the array of Cloudinary URLs to PostgreSQL
+            files: fileUrls, 
             userId 
         });
 
