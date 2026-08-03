@@ -1,84 +1,56 @@
 const Submission = require('../models/Submission');
 const User = require('../models/User');
 const { sendMail } = require('../utils/emailService');
+require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 
-console.log("Cloudinary Config Check:");
-console.log("Cloud Name exists:", !!process.env.CLOUDINARY_CLOUD_NAME);
-console.log("API Key exists:", !!process.env.CLOUDINARY_API_KEY);
-// ONLY log the length to keep your secret safe in the logs
-console.log("API Secret Length:", process.env.CLOUDINARY_API_SECRET ? process.env.CLOUDINARY_API_SECRET.length : 'UNDEFINED');
+const cloudinaryConfig = {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME?.trim(),
+  api_key: process.env.CLOUDINARY_API_KEY?.trim(),
+  api_secret: process.env.CLOUDINARY_API_SECRET?.trim(),
+};
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
-  api_key: process.env.CLOUDINARY_API_KEY.trim(),
-  api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
-});
+if (!cloudinaryConfig.cloud_name || !cloudinaryConfig.api_key || !cloudinaryConfig.api_secret) {
+  throw new Error('Missing Cloudinary environment variables');
+}
+
+cloudinary.config(cloudinaryConfig);
 
 /**
  * Helper function to upload a buffer stream to Cloudinary
  * Returns a Promise that resolves with the Cloudinary response
  */
-const streamUpload = (buffer) => {
+const streamUpload = (buffer, originalName = '') => {
   return new Promise((resolve, reject) => {
+    const isCodeFile = originalName.endsWith('.js') || originalName.endsWith('.jsx');
+    
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'submissions',
-        resource_type: 'auto'
-       }, 
+      { 
+        folder: 'submissions',
+        resource_type: isCodeFile ? 'raw' : 'auto'
+      }, 
       (error, result) => {
         if (result) {
           resolve(result);
         } else {
+          console.error("CLOUDINARY REJECTION REASON:", JSON.stringify(error, null, 2));
           reject(error);
         }
       }
     );
 
-    // Convert the buffer into a readable stream and pipe it
-    const readableStream = new Readable();
+    // Added empty read() method object to prevent instantiation crash
+    const readableStream = new Readable({
+      read() {} 
+    });
+    
     readableStream.push(buffer);
     readableStream.push(null);
     readableStream.pipe(stream);
   });
 };
 
-// USER: Submit Work
-// exports.submitWork = async (req, res) => {
-//     try {
-//         const { title, concepts } = req.body;
-//         const userId = req.user.id; 
-        
-//         // Ensure files exist before mapping
-//         const files = req.files ? req.files.map(file => file.path) : [];
-
-//         const submission = await Submission.create({
-//             title,
-//             concepts,
-//             files,
-//             userId 
-//         });
-
-//         // Fetch the user and their manager to dynamically assign emails
-//         const user = await User.findByPk(userId);
-//         let managerEmail = ''; 
-        
-//         if (user.managerId) {
-//             const manager = await User.findByPk(user.managerId);
-//             if (manager) managerEmail = manager.email;
-//         }
-
-//         const emailBody = `Employee ${user.email} has submitted work for review.\n\nWork Title: ${title}`;
-        
-//         // Send email to Manager (TO), and Employee (CC)
-//         // await sendMail(managerEmail, 'New Work Submission', emailBody, user.email);
-
-//         // res.status(201).json({ message: 'Work submitted successfully', submission });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error', error: error.message });
-//     }
-// };
 exports.submitWork = async (req, res) => {
     try {
         const { title, concepts } = req.body;
@@ -89,8 +61,8 @@ exports.submitWork = async (req, res) => {
 
         // Check if files exist in the request
         if (req.files && req.files.length > 0) {
-            // Map over the array of files and create an array of Promises
-            const uploadPromises = req.files.map(file => streamUpload(file.buffer));
+            // FIXED: Passing file.originalname so streamUpload knows how to handle the extension
+            const uploadPromises = req.files.map(file => streamUpload(file.buffer, file.originalname));
             
             // Wait for all uploads to finish concurrently
             const uploadResults = await Promise.all(uploadPromises);
@@ -106,7 +78,6 @@ exports.submitWork = async (req, res) => {
             files: fileUrls, 
             userId 
         });
-
 
         res.status(201).json({ message: 'Work submitted successfully', submission });
     } catch (error) {
@@ -189,45 +160,6 @@ exports.reviewSubmission = async (req, res) => {
     }
 };
 
-
-// exports.updateSubmission = async (req, res) => {
-//   try {
-//     const submissionId = req.params.id;
-//     const { title, concepts } = req.body;
-//     const files = req.files;
-//     const submission = await Submission.findByPk(submissionId);
-
-//     if (!submission) {
-//       return res.status(404).json({ message: 'Submission not found' });
-//     }
-
-//     // Prepare the updated data
-//     const updateData = {
-//       title: title || submission.title,
-//       concepts: concepts || submission.concepts,
-//     };
-
-//     // Handle file updates if new files were uploaded
-//     if (files && files.length > 0) {
-//       // Changed from file.filename to file.path to match your POST route
-//       const filePaths = files.map(file => file.path); 
-//       updateData.files = filePaths; 
-//     }
-
-//     // Update the database record
-//     await submission.update(updateData);
-
-//     // Send success response back to React
-//     return res.status(200).json({ 
-//       message: 'Submission updated successfully', 
-//       submission 
-//     });
-
-//   } catch (error) {
-//     console.error("Error updating submission:", error);
-//     return res.status(500).json({ message: 'Server error while updating submission' });
-//   }
-// };
 exports.updateSubmission = async (req, res) => {
   try {
     const submissionId = req.params.id;
@@ -239,14 +171,14 @@ exports.updateSubmission = async (req, res) => {
     }
 
     const updateData = {
-      title: title || submission.title,
-      concepts: concepts || submission.concepts,
+      title: title ?? submission.title,         // Pro Tip: Changed to Nullish coalescing 
+      concepts: concepts ?? submission.concepts, // to support empty string overrides safely
     };
 
     // Handle file updates if new files were uploaded
     if (req.files && req.files.length > 0) {
-        // Upload new files to Cloudinary
-        const uploadPromises = req.files.map(file => streamUpload(file.buffer));
+        // FIXED: Passing file.originalname for file extension checking during updates
+        const uploadPromises = req.files.map(file => streamUpload(file.buffer, file.originalname));
         const uploadResults = await Promise.all(uploadPromises);
         const newFileUrls = uploadResults.map(result => result.secure_url);
         
@@ -262,7 +194,8 @@ exports.updateSubmission = async (req, res) => {
 
   } catch (error) {
     console.error("Error updating submission:", error);
-    return res.status(500).json({ message: 'Server error while updating submission' });
+    // OPTIMIZATION: Passed error message to client for faster debugging
+    return res.status(500).json({ message: 'Server error while updating submission', error: error.message });
   }
 };
 
