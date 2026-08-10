@@ -56,28 +56,47 @@ exports.submitWork = async (req, res) => {
         const { title, concepts } = req.body;
         const userId = req.user.id; 
         
-        let fileUrls = [];
-        console.log("Title: ", title);
+        let fileData = []; 
 
-        // Check if files exist in the request
         if (req.files && req.files.length > 0) {
-            // FIXED: Passing file.originalname so streamUpload knows how to handle the extension
-            const uploadPromises = req.files.map(file => streamUpload(file.buffer, file.originalname));
-            
-            // Wait for all uploads to finish concurrently
-            const uploadResults = await Promise.all(uploadPromises);
-            
-            // Extract the secure URLs from the results
-            fileUrls = uploadResults.map(result => result.secure_url);
+            const uploadPromises = req.files.map(async (file) => {
+                const result = await streamUpload(file.buffer, file.originalname); 
+                return {
+                    url: result.secure_url,
+                    name: file.originalname
+                }
+            });
+            fileData = await Promise.all(uploadPromises);
         }
 
-        // Create the submission using the array of Cloudinary URLs
+        // Create the submission
         const submission = await Submission.create({
             title,
             concepts,
-            files: fileUrls, 
+            files: fileData, 
             userId 
         });
+
+        // Fetch the User to get their managerId, name, and email
+        const user = await User.findByPk(userId);
+
+        // Emit to the MANAGER'S room
+        if (req.io && user && user.managerId) {
+
+            const newSubmissionPayload = {
+                ...submission.toJSON(), 
+                employee: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email
+                }
+            };
+
+            const managerRoom = `user_${user.managerId}`;
+            
+            req.io.to(managerRoom).emit('new_submission', newSubmissionPayload);
+            console.log(`[SOCKET] Broadcasted new submission to Manager room: ${managerRoom}`);
+        }
 
         res.status(201).json({ message: 'Work submitted successfully', submission });
     } catch (error) {
@@ -129,8 +148,41 @@ exports.getAllSubmissions = async (req, res) => {
 };
 
 // MANAGER/ADMIN: Review Submission
+// exports.reviewSubmission = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const { status, adminComments } = req.body;
+
+//         const submission = await Submission.findByPk(id, {
+//             include: [{ model: User, as: 'employee' }]
+//         });
+
+//         if (!submission) return res.status(404).json({ message: 'Submission not found' });
+
+//         submission.status = status;
+//         submission.adminComments = adminComments;
+//         await submission.save();
+
+//         // Fetch the manager performing the review to add them to the CC
+//         const manager = await User.findByPk(req.user.id);
+
+//         const subject = status === 'approved' ? 'Work Approved' : 'Work Rejected';
+//         const emailBody = `Your submitted work "${submission.title}" has been ${status}.\n\nComments:\n${adminComments}`;
+        
+//         // Send email to Employee (TO), and Manager (CC)
+//         // await sendMail(submission.employee.email, subject, emailBody, manager.email);
+
+//         res.status(200).json({ message: `Submission ${status} successfully`, submission });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Server error', error: error.message });
+//     }
+// };
+// submissionController.js
+
 exports.reviewSubmission = async (req, res) => {
     try {
+        console.log("request parameters:", req.params);
         const { id } = req.params;
         const { status, adminComments } = req.body;
 
@@ -144,14 +196,17 @@ exports.reviewSubmission = async (req, res) => {
         submission.adminComments = adminComments;
         await submission.save();
 
-        // Fetch the manager performing the review to add them to the CC
-        const manager = await User.findByPk(req.user.id);
-
-        const subject = status === 'approved' ? 'Work Approved' : 'Work Rejected';
-        const emailBody = `Your submitted work "${submission.title}" has been ${status}.\n\nComments:\n${adminComments}`;
-        
-        // Send email to Employee (TO), and Manager (CC)
-        // await sendMail(submission.employee.email, subject, emailBody, manager.email);
+        // --- REAL-TIME BROADCAST ---
+        // Emit an event named 'submission_updated' containing the new data.
+        // We broadcast to the specific room of the user who owns the submission.
+        if (req.io) {
+            req.io.to(`user_${submission.userId}`).emit('submission_updated', {
+                id: submission.id,
+                status: submission.status,
+                adminComments: submission.adminComments
+            });
+            console.log(`Broadcasted update for submission ${id} to user_${submission.userId}`);
+        }
 
         res.status(200).json({ message: `Submission ${status} successfully`, submission });
     } catch (error) {
@@ -171,18 +226,24 @@ exports.updateSubmission = async (req, res) => {
     }
 
     const updateData = {
-      title: title ?? submission.title,         // Pro Tip: Changed to Nullish coalescing 
-      concepts: concepts ?? submission.concepts, // to support empty string overrides safely
+      title: title ?? submission.title,         
+      concepts: concepts ?? submission.concepts, 
     };
 
     // Handle file updates if new files were uploaded
     if (req.files && req.files.length > 0) {
-        // FIXED: Passing file.originalname for file extension checking during updates
-        const uploadPromises = req.files.map(file => streamUpload(file.buffer, file.originalname));
-        const uploadResults = await Promise.all(uploadPromises);
-        const newFileUrls = uploadResults.map(result => result.secure_url);
+        const uploadPromises = req.files.map(async (file) => {
+            const result = await streamUpload(file.buffer, file.originalname);
+            
+            return {
+                url: result.secure_url,
+                name: file.originalname
+            };
+        });
+
+        const newFileData = await Promise.all(uploadPromises);
         
-        updateData.files = newFileUrls; 
+        updateData.files = newFileData; 
     }
 
     await submission.update(updateData);
@@ -194,7 +255,6 @@ exports.updateSubmission = async (req, res) => {
 
   } catch (error) {
     console.error("Error updating submission:", error);
-    // OPTIMIZATION: Passed error message to client for faster debugging
     return res.status(500).json({ message: 'Server error while updating submission', error: error.message });
   }
 };

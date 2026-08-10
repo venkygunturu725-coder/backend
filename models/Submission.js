@@ -18,8 +18,9 @@ const Submission = sequelize.define('Submission', {
         allowNull: false,
     },
     files: {
-        type: DataTypes.ARRAY(DataTypes.STRING), // Holds local storage file paths
-        defaultValue: [],
+        type: DataTypes.JSONB, 
+        allowNull: true,
+        // defaultValue: [],
     },
     submissionDate: {
         type: DataTypes.DATE,
