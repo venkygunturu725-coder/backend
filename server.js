@@ -73,17 +73,17 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const path = require('path');
-const http = require('http'); // 1. Import Node's http module
-const { Server } = require('socket.io'); // 2. Import Socket.io
+const http = require('http'); 
+const { Server } = require('socket.io'); 
 
 const app = express();
-const server = http.createServer(app); // 3. Wrap Express app in HTTP server
+const server = http.createServer(app); 
 
 // 4. Initialize Socket.io with CORS configuration
 const io = new Server(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production' 
-            ? 'https://your-frontend-domain.vercel.app' // Update this for production
+            ? 'https://knowlwdge-management-portal.vercel.app' 
             : 'http://localhost:5173', // Vite default port
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
@@ -127,8 +127,8 @@ io.on('connection', (socket) => {
 if (process.env.NODE_ENV !== 'production') {
     sequelize.sync({ alter: true })
         .then(() => {
-            console.log('PostgreSQL Database connected successfully.');
-            // 7. IMPORTANT: Use server.listen instead of app.listen
+            console.log('PostgreSQL Database connected successfully (Local).');
+            // Starts the server locally
             server.listen(PORT, () => {
                 console.log(`Server (HTTP & WS) is running on port ${PORT}`);
             });
@@ -139,7 +139,11 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
     sequelize.authenticate()
         .then(() => {
-            console.log('Database connection has been established successfully on Vercel.');
+            console.log('Database connection has been established successfully in Production (Render).');
+            // 7. CRITICAL FIX: Tell the server to listen in production so it doesn't exit early
+            server.listen(PORT, () => {
+                console.log(`Production Server (HTTP & WS) is running on port ${PORT}`);
+            });
         })
         .catch(err => {
             console.error('Unable to connect to the database:', err);
