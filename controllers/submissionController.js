@@ -1,5 +1,6 @@
 const Submission = require('../models/Submission');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { sendMail } = require('../utils/emailService');
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
@@ -82,6 +83,11 @@ exports.submitWork = async (req, res) => {
 
         // Emit to the MANAGER'S room
         if (req.io && user && user.managerId) {
+
+            await Notification.create({
+                userId: user.managerId,
+                message: `${user.name} submitted a new project: ${submission.title}`
+            });
 
             const newSubmissionPayload = {
                 ...submission.toJSON(), 
@@ -199,11 +205,18 @@ exports.reviewSubmission = async (req, res) => {
         // --- REAL-TIME BROADCAST ---
         // Emit an event named 'submission_updated' containing the new data.
         // We broadcast to the specific room of the user who owns the submission.
+
+        await Notification.create({
+            userId: submission.employee.id,
+            message: `Your submission "${submission.title}" was ${status.toUpperCase()}.`
+        });
+
         if (req.io) {
             req.io.to(`user_${submission.userId}`).emit('submission_updated', {
                 id: submission.id,
                 status: submission.status,
-                adminComments: submission.adminComments
+                adminComments: submission.adminComments,
+                title: submission.title,
             });
             console.log(`Broadcasted update for submission ${id} to user_${submission.userId}`);
         }
