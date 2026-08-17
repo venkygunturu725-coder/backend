@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
+const notification = require('./models/Notification');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
