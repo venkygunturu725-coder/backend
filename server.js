@@ -7,12 +7,14 @@ const http = require('http');
 const cookieParser = require('cookie-parser');
 const { Server } = require('socket.io');
 const notification = require('./models/Notification');
+const bcrypt = require('bcryptjs');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 
 const app = express();
@@ -22,7 +24,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production' 
-            ? 'https://knowlwdge-management-portal.vercel.app' 
+            ? 'https://knowlwdge-management-portal.vercel.app/' 
             : 'http://localhost:5173',
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
@@ -32,7 +34,7 @@ const io = new Server(server, {
 // Middleware
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? 'https://knowlwdge-management-portal.vercel.app' 
+        ? 'https://knowlwdge-management-portal.vercel.app/' 
         : 'http://localhost:5173',
     credentials: true // This is required for cookies/refresh tokens to work
 }));
@@ -65,7 +67,8 @@ app.use('/api/users', userRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/notifications', require('./routes/notificationRoutes')); // Keep this for your bell icon
+app.use('/api/notifications', require('./routes/notificationRoutes')); 
+app.use('/api/tasks', taskRoutes);
 
 const PORT = process.env.PORT || 3000;
 

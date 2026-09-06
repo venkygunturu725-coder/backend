@@ -1,7 +1,8 @@
 // models/Submission.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const User = require('./User'); // Import your existing User model
+const User = require('./User');
+const Task = require('./Task')
 
 const Submission = sequelize.define('Submission', {
     id: {
@@ -37,11 +38,22 @@ const Submission = sequelize.define('Submission', {
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    }, 
+    taskId: {
+        type: DataTypes.UUID,
+        allowNull: true, // Nullable so employees can still make proactive, unassigned submissions
+        references: {
+            model: 'tasks',
+            key: 'id'
+        }
     }
 }, { timestamps: true });
 
 // Declare Relationships
 User.hasMany(Submission, { foreignKey: 'userId', as: 'submissions' });
 Submission.belongsTo(User, { foreignKey: 'userId', as: 'employee' });
+
+Submission.belongsTo(Task, { foreignKey: 'taskId', as: 'task' });
+Task.hasOne(Submission, { foreignKey: 'taskId', as: 'submission' });
 
 module.exports = Submission;

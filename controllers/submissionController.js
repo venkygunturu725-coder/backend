@@ -5,6 +5,7 @@ const { sendMail } = require('../utils/emailService');
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
+const Task = require('../models/Task');
 
 const cloudinaryConfig = {
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME?.trim(),
@@ -54,7 +55,7 @@ const streamUpload = (buffer, originalName = '') => {
 
 exports.submitWork = async (req, res) => {
     try {
-        const { title, concepts } = req.body;
+        const { title, concepts, taskId } = req.body;
         const userId = req.user.id; 
         
         let fileData = []; 
@@ -75,8 +76,16 @@ exports.submitWork = async (req, res) => {
             title,
             concepts,
             files: fileData, 
-            userId 
+            userId, 
+            taskId: taskId || null, 
         });
+
+        if (taskId) {
+            await Task.update(
+                { status: 'Completed' },
+                { where: { id: taskId } }
+            ); 
+        }
 
         // Fetch the User to get their managerId, name, and email
         const user = await User.findByPk(userId);
@@ -117,6 +126,11 @@ exports.getMySubmissions = async (req, res) => {
         const userId = req.user.id;
         const submissions = await Submission.findAll({
             where: { userId },
+            include: [{
+                model: Task,
+                as: 'task',
+                attributes: ['id', 'title', 'status']
+            }],
             order: [['createdAt', 'DESC']]
         });
 
