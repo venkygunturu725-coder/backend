@@ -87,7 +87,7 @@ if (process.env.NODE_ENV !== 'production') {
         });
 } else {
     // PRODUCTION (RENDER/RAILWAY)
-    sequelize.authenticate()
+    sequelize.sync({ alter: true })
         .then(() => {
             console.log('Database connection established in Production.');
             server.listen(PORT, () => {
