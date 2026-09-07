@@ -24,7 +24,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production' 
-            ? 'https://knowlwdge-management-portal.vercel.app/' 
+            ? 'https://knowlwdge-management-portal.vercel.app' 
             : 'http://localhost:5173',
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
@@ -34,7 +34,7 @@ const io = new Server(server, {
 // Middleware
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? 'https://knowlwdge-management-portal.vercel.app/' 
+        ? 'https://knowlwdge-management-portal.vercel.app' 
         : 'http://localhost:5173',
     credentials: true // This is required for cookies/refresh tokens to work
 }));
